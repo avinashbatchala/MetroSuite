@@ -4,3 +4,6 @@
 [submodule "apps/launcher"]
 	path = apps/launcher
 	url = https://github.com/avinashbatchala/win10.git
+[submodule "apps/clock"]
+	path = apps/clock
+	url = https://github.com/avinashbatchala/MetroClock.git
