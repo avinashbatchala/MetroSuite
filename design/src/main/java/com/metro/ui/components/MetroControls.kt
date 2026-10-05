@@ -183,6 +183,24 @@ fun MetroButton(
     }
 }
 
+/** Flat icon-only tap target (top bars, tile trailing actions). */
+@Composable
+fun MetroIconButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .size(40.dp)
+            .clickable(enabled = enabled) { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        content()
+    }
+}
+
 /** Compact rectangular Windows toggle. */
 @Composable
 fun MetroToggle(
