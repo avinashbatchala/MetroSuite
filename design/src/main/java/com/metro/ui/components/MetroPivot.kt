@@ -21,6 +21,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
@@ -35,6 +36,8 @@ fun MetroPivot(
     titles: List<String>,
     modifier: Modifier = Modifier,
     initialIndex: Int = 0,
+    activeColor: Color = MaterialTheme.colorScheme.onSurface,
+    inactiveColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     onPageChanged: (Int) -> Unit = {},
     content: @Composable (Int) -> Unit
 ) {
@@ -48,6 +51,8 @@ fun MetroPivot(
         PivotHeader(
             titles = titles,
             pagerState = pagerState,
+            activeColor = activeColor,
+            inactiveColor = inactiveColor,
             onSelect = { index -> scope.launch { pagerState.animateScrollToPage(index) } }
         )
         HorizontalPager(
@@ -67,6 +72,8 @@ fun MetroPivot(
 private fun PivotHeader(
     titles: List<String>,
     pagerState: PagerState,
+    activeColor: Color,
+    inactiveColor: Color,
     onSelect: (Int) -> Unit
 ) {
     val headerWidths = remember { mutableStateListOf(*Array(titles.size) { 0 }) }
@@ -83,8 +90,8 @@ private fun PivotHeader(
     val nextStart = if (page + 1 < titles.size) offsets[page + 1].toFloat() else endOffset.toFloat()
     val translation = currentStart + fraction * (nextStart - currentStart)
 
-    val fg = MaterialTheme.colorScheme.onSurface
-    val subtle = MaterialTheme.colorScheme.onSurfaceVariant
+    val fg = activeColor
+    val subtle = inactiveColor
 
     Box(
         modifier = Modifier
