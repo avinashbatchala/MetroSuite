@@ -1,0 +1,6 @@
+[submodule "apps/weather"]
+	path = apps/weather
+	url = https://github.com/avinashbatchala/MetroWeather.git
+[submodule "apps/launcher"]
+	path = apps/launcher
+	url = https://github.com/avinashbatchala/win10.git
