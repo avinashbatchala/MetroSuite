@@ -17,7 +17,8 @@ data class ClockTimerState(
     val state: ClockRunState,
     val endElapsedRealtime: Long,
     val remainingWhenPausedMillis: Long,
-    val label: String? = null
+    val label: String? = null,
+    val id: Int? = null
 )
 
 /**
@@ -42,14 +43,25 @@ data class ClockTileState(
     val updatedAt: Long,
     val currentEpochMillis: Long,
     val nextAlarm: ClockNextAlarmState? = null,
+    /** Primary active timer (kept for backward compatibility with single-item consumers). */
     val timer: ClockTimerState? = null,
-    val stopwatch: ClockStopwatchState? = null
+    val stopwatch: ClockStopwatchState? = null,
+    /** All active timers; the launcher shuffles between them when there is more than one. */
+    val timers: List<ClockTimerState> = emptyList(),
+    /** All active stopwatches (the backend currently supports one). */
+    val stopwatches: List<ClockStopwatchState> = emptyList()
 ) {
+    val activeTimers: List<ClockTimerState>
+        get() = if (timers.isNotEmpty()) timers else listOfNotNull(timer)
+
+    val activeStopwatches: List<ClockStopwatchState>
+        get() = if (stopwatches.isNotEmpty()) stopwatches else listOfNotNull(stopwatch)
+
     /** Deterministic template priority: timer, stopwatch, next alarm, then plain clock. */
     val template: String
         get() = when {
-            timer != null && timer.state != ClockRunState.IDLE -> MetroLiveTileTemplates.TIMER
-            stopwatch != null && stopwatch.state != ClockRunState.IDLE -> MetroLiveTileTemplates.STOPWATCH
+            activeTimers.isNotEmpty() -> MetroLiveTileTemplates.TIMER
+            activeStopwatches.isNotEmpty() -> MetroLiveTileTemplates.STOPWATCH
             nextAlarm != null && nextAlarm.enabled -> MetroLiveTileTemplates.ALARM
             else -> MetroLiveTileTemplates.CLOCK
         }

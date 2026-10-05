@@ -22,20 +22,19 @@ fun ClockTileState.toBundle(): Bundle = Bundle().apply {
         putBoolean(MetroLiveTileProtocol.EXTRA_ALARM_ENABLED, alarm.enabled)
     }
 
-    timer?.let { timer ->
+    activeTimers.firstOrNull()?.let { timer ->
         putBoolean(MetroLiveTileProtocol.EXTRA_HAS_TIMER, true)
-        putString(MetroLiveTileProtocol.EXTRA_TIMER_STATE, timer.state.name)
-        putLong(MetroLiveTileProtocol.EXTRA_TIMER_END_ELAPSED, timer.endElapsedRealtime)
-        putLong(MetroLiveTileProtocol.EXTRA_TIMER_REMAINING_PAUSED, timer.remainingWhenPausedMillis)
-        putString(MetroLiveTileProtocol.EXTRA_TIMER_LABEL, timer.label)
+        putAll(timer.toTimerBundle())
+    }
+    activeStopwatches.firstOrNull()?.let { sw ->
+        putBoolean(MetroLiveTileProtocol.EXTRA_HAS_STOPWATCH, true)
+        putAll(sw.toStopwatchBundle())
     }
 
-    stopwatch?.let { sw ->
-        putBoolean(MetroLiveTileProtocol.EXTRA_HAS_STOPWATCH, true)
-        putString(MetroLiveTileProtocol.EXTRA_STOPWATCH_STATE, sw.state.name)
-        putLong(MetroLiveTileProtocol.EXTRA_STOPWATCH_START_ELAPSED, sw.startElapsedRealtime)
-        putLong(MetroLiveTileProtocol.EXTRA_STOPWATCH_ACCUMULATED, sw.accumulatedElapsedMillis)
-    }
+    val timerBundles = ArrayList<Bundle>(activeTimers.map { it.toTimerBundle() })
+    putParcelableArrayList(MetroLiveTileProtocol.EXTRA_TIMERS, timerBundles)
+    val stopwatchBundles = ArrayList<Bundle>(activeStopwatches.map { it.toStopwatchBundle() })
+    putParcelableArrayList(MetroLiveTileProtocol.EXTRA_STOPWATCHES, stopwatchBundles)
 }
 
 fun Bundle.toClockTileState(): ClockTileState? {
@@ -51,22 +50,18 @@ fun Bundle.toClockTileState(): ClockTileState? {
         )
     } else null
 
-    val timer = if (getBoolean(MetroLiveTileProtocol.EXTRA_HAS_TIMER, false)) {
-        ClockTimerState(
-            state = runState(getString(MetroLiveTileProtocol.EXTRA_TIMER_STATE)),
-            endElapsedRealtime = getLong(MetroLiveTileProtocol.EXTRA_TIMER_END_ELAPSED, 0L),
-            remainingWhenPausedMillis = getLong(MetroLiveTileProtocol.EXTRA_TIMER_REMAINING_PAUSED, 0L),
-            label = getString(MetroLiveTileProtocol.EXTRA_TIMER_LABEL)
-        )
-    } else null
+    @Suppress("DEPRECATION")
+    val timerList = getParcelableArrayList<Bundle>(MetroLiveTileProtocol.EXTRA_TIMERS)
+        ?.mapNotNull { it.toTimerState() }
+        .orEmpty()
 
-    val stopwatch = if (getBoolean(MetroLiveTileProtocol.EXTRA_HAS_STOPWATCH, false)) {
-        ClockStopwatchState(
-            state = runState(getString(MetroLiveTileProtocol.EXTRA_STOPWATCH_STATE)),
-            startElapsedRealtime = getLong(MetroLiveTileProtocol.EXTRA_STOPWATCH_START_ELAPSED, 0L),
-            accumulatedElapsedMillis = getLong(MetroLiveTileProtocol.EXTRA_STOPWATCH_ACCUMULATED, 0L)
-        )
-    } else null
+    @Suppress("DEPRECATION")
+    val stopwatchList = getParcelableArrayList<Bundle>(MetroLiveTileProtocol.EXTRA_STOPWATCHES)
+        ?.mapNotNull { it.toStopwatchState() }
+        .orEmpty()
+
+    val primaryTimer = timerList.firstOrNull()
+    val primaryStopwatch = stopwatchList.firstOrNull()
 
     return ClockTileState(
         protocolVersion = version,
@@ -75,10 +70,42 @@ fun Bundle.toClockTileState(): ClockTileState? {
         updatedAt = getLong(MetroLiveTileProtocol.EXTRA_UPDATED_AT, 0L),
         currentEpochMillis = getLong(MetroLiveTileProtocol.EXTRA_CURRENT_EPOCH, 0L),
         nextAlarm = nextAlarm,
-        timer = timer,
-        stopwatch = stopwatch
+        timer = primaryTimer,
+        stopwatch = primaryStopwatch,
+        timers = timerList,
+        stopwatches = stopwatchList
     )
 }
+
+private fun ClockTimerState.toTimerBundle(): Bundle = Bundle().apply {
+    putString(MetroLiveTileProtocol.EXTRA_TIMER_STATE, state.name)
+    putLong(MetroLiveTileProtocol.EXTRA_TIMER_END_ELAPSED, endElapsedRealtime)
+    putLong(MetroLiveTileProtocol.EXTRA_TIMER_REMAINING_PAUSED, remainingWhenPausedMillis)
+    putString(MetroLiveTileProtocol.EXTRA_TIMER_LABEL, label)
+    id?.let { putInt(MetroLiveTileProtocol.EXTRA_TIMER_ID, it) }
+}
+
+private fun Bundle.toTimerState(): ClockTimerState = ClockTimerState(
+    state = runState(getString(MetroLiveTileProtocol.EXTRA_TIMER_STATE)),
+    endElapsedRealtime = getLong(MetroLiveTileProtocol.EXTRA_TIMER_END_ELAPSED, 0L),
+    remainingWhenPausedMillis = getLong(MetroLiveTileProtocol.EXTRA_TIMER_REMAINING_PAUSED, 0L),
+    label = getString(MetroLiveTileProtocol.EXTRA_TIMER_LABEL),
+    id = if (containsKey(MetroLiveTileProtocol.EXTRA_TIMER_ID)) {
+        getInt(MetroLiveTileProtocol.EXTRA_TIMER_ID)
+    } else null
+)
+
+private fun ClockStopwatchState.toStopwatchBundle(): Bundle = Bundle().apply {
+    putString(MetroLiveTileProtocol.EXTRA_STOPWATCH_STATE, state.name)
+    putLong(MetroLiveTileProtocol.EXTRA_STOPWATCH_START_ELAPSED, startElapsedRealtime)
+    putLong(MetroLiveTileProtocol.EXTRA_STOPWATCH_ACCUMULATED, accumulatedElapsedMillis)
+}
+
+private fun Bundle.toStopwatchState(): ClockStopwatchState = ClockStopwatchState(
+    state = runState(getString(MetroLiveTileProtocol.EXTRA_STOPWATCH_STATE)),
+    startElapsedRealtime = getLong(MetroLiveTileProtocol.EXTRA_STOPWATCH_START_ELAPSED, 0L),
+    accumulatedElapsedMillis = getLong(MetroLiveTileProtocol.EXTRA_STOPWATCH_ACCUMULATED, 0L)
+)
 
 fun MetroTileState.toBundle(): Bundle = Bundle().apply {
     putInt(MetroLiveTileProtocol.EXTRA_PROTOCOL_VERSION, protocolVersion)
