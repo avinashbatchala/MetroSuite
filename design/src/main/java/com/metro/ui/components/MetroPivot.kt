@@ -38,6 +38,7 @@ fun MetroPivot(
     initialIndex: Int = 0,
     activeColor: Color = MaterialTheme.colorScheme.onSurface,
     inactiveColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    translateHeader: Boolean = true,
     onPageChanged: (Int) -> Unit = {},
     content: @Composable (Int) -> Unit
 ) {
@@ -53,6 +54,7 @@ fun MetroPivot(
             pagerState = pagerState,
             activeColor = activeColor,
             inactiveColor = inactiveColor,
+            translate = translateHeader,
             onSelect = { index -> scope.launch { pagerState.animateScrollToPage(index) } }
         )
         HorizontalPager(
@@ -74,6 +76,7 @@ private fun PivotHeader(
     pagerState: PagerState,
     activeColor: Color,
     inactiveColor: Color,
+    translate: Boolean,
     onSelect: (Int) -> Unit
 ) {
     val headerWidths = remember { mutableStateListOf(*Array(titles.size) { 0 }) }
@@ -93,16 +96,27 @@ private fun PivotHeader(
     val fg = activeColor
     val subtle = inactiveColor
 
-    Box(
-        modifier = Modifier
+    val containerModifier = if (translate) {
+        Modifier
             .fillMaxWidth()
             .padding(start = PageInset)
             .clipToBounds()
-    ) {
+    } else {
+        Modifier
+            .fillMaxWidth()
+            .padding(start = PageInset)
+    }
+    val rowModifier = if (translate) {
+        Modifier
+            .wrapContentWidth(align = Alignment.Start, unbounded = true)
+            .graphicsLayer { translationX = -translation }
+    } else {
+        Modifier.wrapContentWidth(align = Alignment.Start)
+    }
+
+    Box(modifier = containerModifier) {
         Row(
-            modifier = Modifier
-                .wrapContentWidth(align = Alignment.Start, unbounded = true)
-                .graphicsLayer { translationX = -translation },
+            modifier = rowModifier,
             verticalAlignment = Alignment.CenterVertically
         ) {
             titles.forEachIndexed { index, title ->
