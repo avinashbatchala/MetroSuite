@@ -125,10 +125,12 @@ private fun PivotHeader(
                     style = MaterialTheme.typography.headlineSmall.copy(
                         color = if (index == page) fg else subtle
                     ),
+                    maxLines = 1,
+                    softWrap = false,
                     modifier = Modifier
                         .onGloballyPositioned { headerWidths[index] = it.size.width }
                         .clickable { onSelect(index) }
-                        .padding(end = 24.dp, top = 6.dp, bottom = 10.dp)
+                        .padding(end = 18.dp, top = 6.dp, bottom = 10.dp)
                 )
             }
         }
